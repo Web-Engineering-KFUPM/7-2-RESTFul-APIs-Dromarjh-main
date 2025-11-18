@@ -40,7 +40,7 @@ LAB SETUP INSTRUCTIONS
  *  =================================================================
  *  Steps:
  *    - Open the server/.env file
- *    - Write your db_username & db_password.
+ *    - Write your db_username & db_password in the connection string.
  *    - If connection successful → console.log("Mongo connected").
  *    - If error → console.error("Connection error:", err.message)
  *

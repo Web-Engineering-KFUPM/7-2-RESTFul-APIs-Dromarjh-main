@@ -1,0 +1,41 @@
+name: Lab 7-2 – Auto Grade
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install lab dependencies
+        working-directory: ./7-2-restful-api
+        run: |
+          if [ -f package.json ]; then
+            npm install
+          fi
+
+      - name: Run auto-grader
+        working-directory: ./7-2-restful-api
+        env:
+          # Set your due date/time here (ISO 8601, UTC).
+          # Example: 2025-11-30 23:59:59 UTC
+          LAB_DUE_DATE: "2025-11-18T20:59:59Z"
+        run: |
+          node script/grade.cjs
