@@ -147,235 +147,238 @@ const report = {
 // ------------------------
 
 function gradeTodo1() {
-    const task = {
-        id: 1,
-        label: "TODO 1 – MongoDB connection (.env & index.js)",
-        max: 14,
-        completeness: 0,
-        correctness: 0,
-        quality: 0,
-        score: 0,
-        details: [],
-    };
+  const task = {
+    id: 1,
+    label: "TODO 1 – MongoDB connection logic",
+    max: 14,
+    completeness: 0,
+    correctness: 0,
+    quality: 0,
+    score: 0,
+    details: [],
+  };
 
-    const hasEnvMongo = /MONGO_URL\s*=/.test(envContent);
-    const hasPlaceholder = /<\s*db_username\s*>|<\s*db_password\s*>/i.test(
-        envContent
+  // --- New detection logic (no .env / mongoose.connect requirement) ---
+  const usesMongooseConnect = /mongoose\.connect\s*\(/.test(indexCode);
+  const usesConnectDB = /connectDB\s*\(/.test(indexCode);
+  const usesProcessEnv = /process\.env\./.test(indexCode);
+
+  const hasTryCatch = /try\s*{[\s\S]*(?:mongoose\.connect|connectDB)[\s\S]*}\s*catch\s*\(/.test(
+    indexCode
+  );
+
+  const logsSuccess = /Mongo connected/i.test(indexCode);
+  const logsError = /Connection error/i.test(indexCode);
+
+  // -----------------------
+  // Completeness (5 marks)
+  // -----------------------
+  let c = 0;
+
+  if (usesMongooseConnect || usesConnectDB) {
+    c += 3;
+    task.details.push(
+      "MongoDB connection call found (mongoose.connect or connectDB)."
     );
-    const hasMongoUrlFilled = hasEnvMongo && !hasPlaceholder;
+  } else {
+    task.details.push("No MongoDB connection function found in index.js.");
+  }
 
-    const hasConnectSnippet = /mongoose\.connect\s*\(\s*process\.env\.MONGO_URL/.test(
-        indexCode
-    );
-    const logsConnected = /Mongo connected/i.test(indexCode);
-    const logsError = /Connection error/i.test(indexCode);
+  if (usesProcessEnv) {
+    c += 2;
+    task.details.push("Uses environment variables via process.env (good practice).");
+  } else {
+    task.details.push("process.env usage not detected in connection code.");
+  }
 
-    // Completeness (5)
-    let c = 0;
-    if (hasEnvMongo) {
-        c += 2;
-        task.details.push("Found MONGO_URL in server/.env.");
-    } else {
-        task.details.push("Missing MONGO_URL in server/.env.");
-    }
+  c = Math.min(c, 5);
 
-    if (hasMongoUrlFilled) {
-        c += 3;
-        task.details.push(
-            "Placeholders <db_username> / <db_password> appear to be replaced."
-        );
-    } else if (hasEnvMongo) {
-        task.details.push(
-            "MONGO_URL still contains <db_username> / <db_password> placeholders."
-        );
-    }
+  // -----------------------
+  // Correctness (5 marks)
+  // -----------------------
+  let r = 0;
 
-    c = clamp(c, 0, 5);
+  if (hasTryCatch) {
+    r += 3;
+    task.details.push("Connection wrapped in try/catch (proper error handling).");
+  }
 
-    // Correctness (5)
-    let r = 0;
-    if (hasConnectSnippet) {
-        r += 3;
-        task.details.push(
-            "Found mongoose.connect(process.env.MONGO_URL) in index.js."
-        );
-    } else {
-        task.details.push(
-            "Could not find mongoose.connect(process.env.MONGO_URL) in index.js."
-        );
-    }
+  if (logsSuccess) {
+    r += 1;
+    task.details.push('Logs "Mongo connected" on successful connection.');
+  }
+  if (logsError) {
+    r += 1;
+    task.details.push('Logs "Connection error" on failure.');
+  }
 
-    if (logsConnected) {
-        r += 1;
-        task.details.push('Found "Mongo connected" log message.');
-    }
-    if (logsError) {
-        r += 1;
-        task.details.push('Found "Connection error" log message.');
-    }
+  r = Math.min(r, 5);
 
-    r = clamp(r, 0, 5);
+  // -----------------------
+  // Quality (4 marks)
+  // -----------------------
+  let q = 0;
 
-    // Quality (4)
-    let q = 0;
-    const hasTryCatchAroundConnect =
-        /try\s*{[\s\S]*mongoose\.connect[\s\S]*}\s*catch\s*\(/.test(indexCode);
-    if (hasTryCatchAroundConnect) {
-        q = 4;
-        task.details.push(
-            "Uses async/await with try/catch around mongoose.connect – good error handling."
-        );
-    } else if (hasConnectSnippet) {
-        q = 2;
-        task.details.push(
-            "Has mongoose.connect but limited structured error handling around it."
-        );
-    } else {
-        q = 0;
-    }
+  if (usesConnectDB) {
+    q += 2;
+    task.details.push("Uses a separate connectDB helper (clean architecture).");
+  }
 
-    task.completeness = c;
-    task.correctness = r;
-    task.quality = q;
-    task.score = clamp(c + r + q, 0, task.max);
+  if (/await\s+(mongoose\.connect|connectDB)/.test(indexCode)) {
+    q += 2;
+    task.details.push("Uses async/await for the DB connection.");
+  }
 
-    return task;
+  q = Math.min(q, 4);
+
+  task.completeness = c;
+  task.correctness = r;
+  task.quality = q;
+  task.score = Math.min(c + r + q, task.max);
+
+  return task;
 }
+
 
 // ------------------------
 //  Grade TODO 2
 // ------------------------
 
 function gradeTodo2() {
-    const task = {
-        id: 2,
-        label: 'TODO 2 – Song schema & model ("Song")',
-        max: 14,
-        completeness: 0,
-        correctness: 0,
-        quality: 0,
-        score: 0,
-        details: [],
-    };
+  const task = {
+    id: 2,
+    label: 'TODO 2 – Song schema & model ("Song")',
+    max: 14,
+    completeness: 0,
+    correctness: 0,
+    quality: 0,
+    score: 0,
+    details: [],
+  };
 
-    let Song = null;
-    let mongoose = null;
+  const modelCode = safeRead(MODEL_FILE) || "";
 
-    try {
-        mongoose = require("mongoose");
-    } catch (err) {
-        task.details.push(
-            "Could not require mongoose. Make sure mongoose is installed."
-        );
-    }
-
-    try {
-        const modelPath = MODEL_FILE;
-        if (fs.existsSync(modelPath)) {
-            Song = require(modelPath);
-        } else {
-            task.details.push(
-                "song.model.js not found at server/models/song.model.js."
-            );
-        }
-    } catch (err) {
-        task.details.push(
-            `Error requiring Song model: ${(err && err.message) || err}`
-        );
-    }
-
-    if (!Song || !Song.schema) {
-        task.details.push(
-            "Song model could not be inspected – schema/model might be missing or incorrectly exported."
-        );
-        task.score = 0;
-        return task;
-    }
-
-    const schema = Song.schema;
-    const titlePath = schema.path("title");
-    const artistPath = schema.path("artist");
-    const yearPath = schema.path("year");
-
-    // Completeness (5)
-    let c = 0;
-    if (titlePath) {
-        c += 2;
-        task.details.push("Found 'title' field in Song schema.");
-    } else {
-        task.details.push("Missing 'title' field in Song schema.");
-    }
-
-    if (artistPath) {
-        c += 2;
-        task.details.push("Found 'artist' field in Song schema.");
-    } else {
-        task.details.push("Missing 'artist' field in Song schema.");
-    }
-
-    if (yearPath) {
-        c += 1;
-        task.details.push("Found 'year' field in Song schema.");
-    } else {
-        task.details.push("Missing 'year' field in Song schema.");
-    }
-
-    c = clamp(c, 0, 5);
-
-    // Correctness (5)
-    let r = 0;
-    const isStringPath = (p) => p && p.instance === "String";
-    const isNumberPath = (p) => p && p.instance === "Number";
-
-    if (isStringPath(titlePath) && titlePath.options.required) {
-        r += 2;
-        task.details.push(
-            "title: String with required:true (matches specification)."
-        );
-    }
-    if (isStringPath(artistPath) && artistPath.options.required) {
-        r += 2;
-        task.details.push(
-            "artist: String with required:true (matches specification)."
-        );
-    }
-    if (isNumberPath(yearPath)) {
-        r += 1;
-        task.details.push("year: Number (matches specification).");
-    }
-
-    r = clamp(r, 0, 5);
-
-    // Quality (4)
-    let q = 0;
-    const timestamps = schema.options && schema.options.timestamps;
-    const hasTrimOnTitle = titlePath && titlePath.options.trim;
-    const hasTrimOnArtist = artistPath && artistPath.options.trim;
-    const hasMinMaxYear =
-        yearPath && yearPath.options && yearPath.options.min && yearPath.options.max;
-
-    if (timestamps) {
-        q += 2;
-        task.details.push("Schema uses timestamps: true.");
-    }
-    if (hasTrimOnTitle && hasTrimOnArtist) {
-        q += 1;
-        task.details.push("title and artist fields use trim: true.");
-    }
-    if (hasMinMaxYear) {
-        q += 1;
-        task.details.push("year field has min & max validators.");
-    }
-
-    q = clamp(q, 0, 4);
-
-    task.completeness = c;
-    task.correctness = r;
-    task.quality = q;
-    task.score = clamp(c + r + q, 0, task.max);
-
+  if (!modelCode) {
+    task.details.push("song.model.js not found at server/models/song.model.js.");
     return task;
+  }
+
+  const hasImport = /import\s+mongoose\s+from\s+["']mongoose["']/.test(modelCode);
+  const hasSchema = /const\s+songSchema\s*=\s*new\s+mongoose\.Schema\s*\(/.test(
+    modelCode
+  );
+  const hasModelExport = /export\s+const\s+Song\s*=\s*mongoose\.model\(\s*["']Song["']/.test(
+    modelCode
+  );
+
+  const hasTitleField = /title\s*:\s*{[\s\S]*type\s*:\s*String[\s\S]*required\s*:\s*true[\s\S]*}/m.test(
+    modelCode
+  );
+  const hasArtistField = /artist\s*:\s*{[\s\S]*type\s*:\s*String[\s\S]*required\s*:\s*true[\s\S]*}/m.test(
+    modelCode
+  );
+  const hasYearField = /year\s*:\s*{[\s\S]*type\s*:\s*Number[\s\S]*}/m.test(
+    modelCode
+  );
+
+  const titleTrim = /title\s*:\s*{[\s\S]*trim\s*:\s*true[\s\S]*}/m.test(modelCode);
+  const artistTrim = /artist\s*:\s*{[\s\S]*trim\s*:\s*true[\s\S]*}/m.test(modelCode);
+  const yearMinMax = /year\s*:\s*{[\s\S]*min\s*:\s*1900[\s\S]*max\s*:\s*2100[\s\S]*}/m.test(
+    modelCode
+  );
+
+  const hasTimestamps =
+    /new\s+mongoose\.Schema\s*\([\s\S]*,\s*{\s*[\s\S]*timestamps\s*:\s*true[\s\S]*}\s*\)/m.test(
+      modelCode
+    );
+
+  // -----------------------
+  // Completeness (5 marks)
+  // -----------------------
+  let c = 0;
+
+  if (hasImport && hasSchema) {
+    c += 2;
+    task.details.push("Found mongoose import and songSchema definition.");
+  } else if (hasSchema) {
+    c += 1;
+    task.details.push("Found songSchema definition but mongoose import pattern not detected.");
+  }
+
+  if (hasTitleField) {
+    c += 2;
+    task.details.push("Found 'title' field in schema.");
+  } else {
+    task.details.push("Missing 'title' field with proper object definition.");
+  }
+
+  if (hasArtistField) {
+    c += 1;
+    task.details.push("Found 'artist' field in schema.");
+  } else {
+    task.details.push("Missing 'artist' field with proper object definition.");
+  }
+
+  c = Math.min(c, 5);
+
+  // -----------------------
+  // Correctness (5 marks)
+  // -----------------------
+  let r = 0;
+
+  if (hasTitleField) {
+    r += 2;
+    task.details.push("title is a String and required:true.");
+  }
+
+  if (hasArtistField) {
+    r += 2;
+    task.details.push("artist is a String and required:true.");
+  }
+
+  if (hasYearField && yearMinMax) {
+    r += 1;
+    task.details.push("year is a Number with min 1900 and max 2100.");
+  }
+
+  r = Math.min(r, 5);
+
+  // -----------------------
+  // Quality (4 marks)
+  // -----------------------
+  let q = 0;
+
+  if (titleTrim && artistTrim) {
+    q += 1;
+    task.details.push("title and artist use trim:true.");
+  }
+
+  if (yearMinMax) {
+    q += 1;
+    task.details.push("year uses sensible min/max validation.");
+  }
+
+  if (hasTimestamps) {
+    q += 2;
+    task.details.push("Schema uses timestamps:true.");
+  }
+
+  q = Math.min(q, 4);
+
+  if (hasModelExport) {
+    task.details.push('Exports Song model via mongoose.model("Song", songSchema).');
+  } else {
+    task.details.push('Could not detect export const Song = mongoose.model("Song", songSchema).');
+  }
+
+  task.completeness = c;
+  task.correctness = r;
+  task.quality = q;
+  task.score = Math.min(c + r + q, task.max);
+
+  return task;
 }
+
 
 // ------------------------
 //  Regex helpers for index.js routes
