@@ -46,7 +46,7 @@ const DUE_ISO = "2025-11-19T23:59:00+03:00";
 const DUE_EPOCH_MS = Date.parse(DUE_ISO);
 
 /** Required file for "submission detected" */
-const REQUIRED_SERVER_PATH = path.join("server", "index.js");
+const REQUIRED_SERVER_PATH = path.join("7-2-restful-api", "server", "index.js");
 
 /** ---------- Student ID ---------- */
 function getStudentId() {
